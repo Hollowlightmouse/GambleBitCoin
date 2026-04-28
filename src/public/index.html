@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Streaming Prediction Market</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="loginView" class="center">
+    <div class="card">
+      <h2>Streaming Prediction Market</h2>
+      <p class="muted">Enter username and select market room.</p>
+      <div class="row">
+        <input id="nameInput" placeholder="Username" maxlength="20" />
+      </div>
+      <div class="row mt10">
+        <select id="symbolSelect">
+          <option value="ETHUSDT">ETHUSDT</option>
+          <option value="SOLUSDT">SOLUSDT</option>
+          <option value="BNBUSDT">BNBUSDT</option>
+        </select>
+      </div>
+      <div class="row mt10">
+        <button id="joinBtn">Join Room</button>
+      </div>
+      <p id="loginMsg" class="muted"></p>
+    </div>
+  </div>
+
+  <div id="gameView" class="hidden">
+    <div class="layout">
+      <section class="panel left-grid">
+        <div>
+          <div class="title">Market <span id="marketLabel"></span></div>
+          <div class="muted">User: <span id="userLabel"></span> | Balance: <span id="balanceLabel"></span></div>
+          <div class="price" id="priceLabel">--</div>
+        </div>
+        <div>
+          <div class="muted">Round timer</div>
+          <div id="timerLabel" class="timer">20s</div>
+          <div id="roundStatus" class="status">Waiting for round...</div>
+        </div>
+        <div>
+          <div class="muted">Round details</div>
+          <div class="line">Start: <span id="startPriceLabel">--</span></div>
+          <div class="line">End: <span id="endPriceLabel">--</span></div>
+          <div class="line">Result: <span id="resultLabel">--</span></div>
+        </div>
+        <div>
+          <div class="muted">Price Chart</div>
+          <canvas id="priceChart"></canvas>
+        </div>
+        <div class="boards">
+          <div class="board">
+            <div><b>Leaderboard Room</b></div>
+            <div id="boardRoom"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel right-grid">
+        <div>
+          <div class="title">Chat</div>
+          <div class="chat-tools">
+            <span class="muted">Live chat</span>
+            <button id="chatLatestBtn" class="chat-latest hidden">Latest</button>
+          </div>
+          <div id="chatBox" class="chat-box"></div>
+          <div class="row mt8">
+            <input id="chatInput" placeholder="Write message..." maxlength="300" />
+            <button id="chatBtn" class="send-btn">Send</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="title">Bet panel</div>
+          <div class="muted">Amount (min 10 - max 300)</div>
+          <div class="row mt8">
+            <input id="betAmount" type="number" min="10" max="300" value="50" />
+          </div>
+          <div class="bet-buttons">
+            <button class="btn-up" id="betUp">UP</button>
+            <button class="btn-down" id="betDown">DOWN</button>
+            <button class="btn-hold" id="betHold">HOLD</button>
+          </div>
+          <div id="betStatus" class="status"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/client.js"></script>
+</body>
+</html>

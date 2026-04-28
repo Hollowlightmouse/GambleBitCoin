@@ -1,0 +1,399 @@
+:root {
+  --bg1: #0f172a;
+  --bg2: #111827;
+  --panel: #1f2937;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --accent: #38bdf8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, #1e293b 0%, var(--bg2) 55%, #020617 100%);
+  color: var(--text);
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: clamp(12px, 2vw, 16px);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.center {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(10px, 5vw, 20px);
+}
+
+.card {
+  width: min(520px, 95vw);
+  background: linear-gradient(160deg, #111827, #1f2937);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: clamp(15px, 4vw, 20px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
+}
+
+.row {
+  display: flex;
+  gap: clamp(6px, 2vw, 10px);
+}
+
+.mt10 {
+  margin-top: 10px;
+}
+
+.mt8 {
+  margin-top: 8px;
+}
+
+input,
+select,
+button {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #0b1220;
+  color: var(--text);
+  padding: clamp(8px, 2vw, 12px);
+  font-size: clamp(12px, 1.5vw, 14px);
+}
+
+button {
+  cursor: pointer;
+  background: linear-gradient(120deg, #0ea5e9, #0284c7);
+  border: 0;
+  font-weight: 700;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: clamp(8px, 2vw, 12px);
+  padding: clamp(8px, 2vw, 12px);
+  height: 100vh;
+}
+
+.panel {
+  background: linear-gradient(170deg, #0f172a, #111827 60%, #0b1220);
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: clamp(8px, 2vw, 12px);
+  overflow: auto;
+}
+
+.title {
+  font-size: clamp(14px, 3vw, 16px);
+  font-weight: 800;
+  margin-bottom: clamp(6px, 1vw, 8px);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: clamp(11px, 1.5vw, 13px);
+}
+
+.price {
+  font-size: clamp(24px, 6vw, 34px);
+  font-weight: 800;
+  color: var(--accent);
+  margin: clamp(6px, 1vw, 8px) 0;
+}
+
+.timer {
+  font-size: clamp(22px, 5vw, 28px);
+  font-weight: 900;
+  width: fit-content;
+  padding: clamp(4px, 1vw, 5px) clamp(8px, 2vw, 10px);
+  border-radius: 10px;
+  background: #1e293b;
+}
+
+.timer.warn {
+  color: #111827;
+  background: var(--warn);
+}
+
+.timer.danger {
+  color: white;
+  background: var(--danger);
+}
+
+.left-grid {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  gap: clamp(6px, 1.5vw, 10px);
+  height: 100%;
+}
+
+.right-grid {
+  display: grid;
+  grid-template-rows: minmax(140px, 0.7fr) minmax(120px, 0.3fr);
+  gap: clamp(6px, 1.5vw, 10px);
+  height: 100%;
+}
+
+.chat-box {
+  height: auto;
+  min-height: 120px;
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: clamp(6px, 1vw, 8px);
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  font-size: clamp(11px, 1.5vw, 13px);
+}
+
+.chat-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: clamp(4px, 1vw, 6px);
+}
+
+.chat-latest {
+  width: auto;
+  padding: clamp(4px, 1vw, 6px) clamp(8px, 2vw, 10px);
+  font-size: clamp(10px, 1.5vw, 12px);
+  border-radius: 8px;
+  background: linear-gradient(120deg, #2563eb, #1d4ed8);
+}
+
+.line {
+  margin-bottom: clamp(4px, 1vw, 6px);
+}
+
+.line b {
+  color: #7dd3fc;
+}
+
+.bet-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: clamp(6px, 1.5vw, 8px);
+  margin: clamp(6px, 1.5vw, 8px) 0;
+}
+
+.btn-up {
+  background: linear-gradient(120deg, #16a34a, #22c55e);
+  padding: clamp(8px, 2vw, 12px) !important;
+}
+
+.btn-down {
+  background: linear-gradient(120deg, #dc2626, #ef4444);
+  padding: clamp(8px, 2vw, 12px) !important;
+}
+
+.btn-hold {
+  background: linear-gradient(120deg, #ca8a04, #eab308);
+  color: #111827;
+  padding: clamp(8px, 2vw, 12px) !important;
+}
+
+.send-btn {
+  max-width: 80px;
+}
+
+.boards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(6px, 1.5vw, 8px);
+}
+
+.board {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: clamp(6px, 1vw, 8px);
+  max-height: 140px;
+  overflow-y: auto;
+  font-size: clamp(11px, 1.5vw, 13px);
+}
+
+.status {
+  font-size: clamp(11px, 1.5vw, 13px);
+  color: #93c5fd;
+  margin-top: clamp(4px, 1vw, 6px);
+  min-height: 18px;
+}
+
+#priceChart {
+  max-height: clamp(120px, 25vh, 180px);
+  margin: clamp(6px, 1vw, 8px) 0;
+}
+
+/* Tablet (800px - 1200px) */
+@media (max-width: 1200px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: clamp(6px, 2vw, 10px);
+  }
+
+  .left-grid {
+    grid-template-rows: auto auto auto minmax(120px, 0.5fr);
+  }
+
+  .right-grid {
+    grid-template-rows: minmax(120px, 0.6fr) minmax(100px, 0.4fr);
+  }
+
+  .panel {
+    min-height: auto;
+  }
+}
+
+/* Pantallas pequeñas (600px - 800px) */
+@media (max-width: 800px) {
+  body {
+    font-size: clamp(11px, 2.5vw, 14px);
+  }
+
+  .layout {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .left-grid,
+  .right-grid {
+    gap: clamp(4px, 1.5vw, 8px);
+  }
+
+  .title {
+    font-size: clamp(13px, 3.5vw, 15px);
+  }
+
+  .price {
+    font-size: clamp(22px, 7vw, 30px);
+  }
+
+  .timer {
+    font-size: clamp(20px, 6vw, 26px);
+  }
+
+  .chat-box {
+    min-height: 100px;
+  }
+
+  #priceChart {
+    max-height: clamp(100px, 30vh, 150px);
+  }
+
+  .board {
+    max-height: 120px;
+  }
+}
+
+/* Móvil (480px - 600px) */
+@media (max-width: 600px) {
+  body {
+    font-size: clamp(10px, 3vw, 12px);
+  }
+
+  .card {
+    padding: clamp(12px, 3vw, 15px);
+  }
+
+  .title {
+    font-size: clamp(12px, 4vw, 14px);
+    margin-bottom: clamp(4px, 1.5vw, 6px);
+  }
+
+  .price {
+    font-size: clamp(20px, 8vw, 28px);
+    margin: clamp(4px, 1.5vw, 6px) 0;
+  }
+
+  .timer {
+    font-size: clamp(18px, 7vw, 24px);
+    padding: clamp(3px, 1vw, 4px) clamp(6px, 2vw, 8px);
+  }
+
+  .muted {
+    font-size: clamp(10px, 2.5vw, 12px);
+  }
+
+  .bet-buttons {
+    gap: clamp(4px, 1.5vw, 6px);
+  }
+
+  .send-btn {
+    max-width: 70px;
+    font-size: clamp(10px, 2vw, 12px);
+  }
+
+  .line {
+    margin-bottom: clamp(3px, 1vw, 5px);
+  }
+
+  .chat-box {
+    min-height: 80px;
+    font-size: clamp(10px, 2vw, 12px);
+  }
+
+  .board {
+    max-height: 100px;
+    font-size: clamp(10px, 2vw, 12px);
+  }
+
+  #priceChart {
+    max-height: clamp(80px, 35vh, 120px);
+  }
+}
+
+/* Ultra-pequeño (<480px) */
+@media (max-width: 480px) {
+  body {
+    font-size: clamp(9px, 3.5vw, 11px);
+  }
+
+  .card {
+    padding: clamp(10px, 3vw, 12px);
+  }
+
+  .title {
+    font-size: clamp(11px, 4.5vw, 13px);
+    margin-bottom: clamp(3px, 1.5vw, 5px);
+  }
+
+  .price {
+    font-size: clamp(18px, 9vw, 24px);
+    margin: clamp(3px, 1.5vw, 5px) 0;
+  }
+
+  .timer {
+    font-size: clamp(16px, 8vw, 22px);
+  }
+
+  .left-grid {
+    grid-template-rows: auto auto auto minmax(60px, 1fr);
+  }
+
+  .right-grid {
+    grid-template-rows: minmax(80px, 1fr) minmax(80px, 1fr);
+  }
+
+  .chat-box {
+    min-height: 60px;
+  }
+
+  .board {
+    max-height: 80px;
+  }
+
+  #priceChart {
+    max-height: clamp(60px, 40vh, 100px);
+  }
+
+  .bet-buttons {
+    gap: clamp(3px, 1.5vw, 5px);
+  }
+}
