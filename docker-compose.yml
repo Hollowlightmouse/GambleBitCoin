@@ -1,0 +1,185 @@
+services:
+  # ========================
+  # INFRASTRUCTURE
+  # ========================
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: gamblbit-zookeeper
+    networks:
+      - gamblenet
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD-SHELL", "echo srvr | nc localhost 2181 | grep -q 'Mode'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: gamblbit-kafka
+    networks:
+      - gamblenet
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: gamblbit-redis
+    networks:
+      - gamblenet
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ========================
+  # FLINK CLUSTER
+  # ========================
+
+  jobmanager:
+    image: apache/flink:1.18.1
+    container_name: gamblbit-flink-jobmanager
+    networks:
+      - gamblenet
+    ports:
+      - "8081:8081"
+    command: >
+      bash -c "/docker-entrypoint.sh jobmanager"
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        state.backend: hashmap
+        state.checkpoints.dir: file:///tmp/flink-checkpoints
+    volumes:
+      - ./flink_job:/opt/flink/usrlib:ro
+      - ./flink_job/flink-sql-connector-kafka.jar:/opt/flink/lib/flink-sql-connector-kafka.jar:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081 || wget -qO- http://localhost:8081 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+
+  taskmanager:
+    image: apache/flink:1.18.1
+    container_name: gamblbit-flink-taskmanager
+    networks:
+      - gamblenet
+    depends_on:
+      jobmanager:
+        condition: service_started
+    command: >
+      bash -c "/docker-entrypoint.sh taskmanager"
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    volumes:
+      - ./flink_job:/opt/flink/usrlib:ro
+      - ./flink_job/flink-sql-connector-kafka.jar:/opt/flink/lib/flink-sql-connector-kafka.jar:ro
+
+  # ========================
+  # APPLICATION SERVICES
+  # ========================
+
+  node-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gamblbit-node-app
+    networks:
+      - gamblenet
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKERS=kafka:29092
+      - PORT=3000
+      - AUTO_OPEN_BROWSER=false
+      - USE_PY_BINANCE=false
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  python-producer:
+    build:
+      context: ./src/streams
+      dockerfile: Dockerfile
+    container_name: gamblbit-python-producer
+    networks:
+      - gamblenet
+    env_file: .env
+    environment:
+      - KAFKA_BROKERS=kafka:29092
+      - BINANCE_SYMBOLS=ethusdt,solusdt,bnbusdt
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  flink-job-submitter:
+    build:
+      context: ./flink_job
+      dockerfile: Dockerfile
+    container_name: gamblbit-flink-job
+    networks:
+      - gamblenet
+    env_file: .env
+    environment:
+      - KAFKA_BROKERS=kafka:29092
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  streamlit:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: gamblbit-streamlit
+    networks:
+      - gamblenet
+    ports:
+      - "8501:8501"
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  gamblenet:
+    driver: bridge

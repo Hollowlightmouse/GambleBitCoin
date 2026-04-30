@@ -4,13 +4,12 @@ const http = require("http");
 const path = require("path");
 const express = require("express");
 const { Server } = require("socket.io");
-const Redis = require("ioredis");
 const open = require("open").default;
 
 const { config } = require("./src/config/env");
 const { SYMBOLS, SIDES } = require("./src/config/constants");
 const { log } = require("./src/config/logger");
-const { RedisRepository } = require("./src/repositories/RedisRepository");
+const { MemoryRepository } = require("./src/repositories/MemoryRepository");
 const { KafkaMirror } = require("./src/streams/kafkaMirror");
 const { BinanceStream } = require("./src/streams/binanceStream");
 const { PythonBinanceBridge } = require("./src/streams/pythonBinanceBridge");
@@ -35,8 +34,10 @@ app.get("/", (_req, res) => {
   res.sendFile(path.join(config.publicDir, "index.html"));
 });
 
-const redis = new Redis(config.redisUrl);
-const repo = new RedisRepository(redis, config);
+// Use MemoryRepository - no external Redis needed
+const repo = new MemoryRepository();
+log("repo", "using in-memory storage");
+
 const kafkaMirror = new KafkaMirror(config.kafkaBrokers);
 
 const userService = new UserService(repo, config);
@@ -62,7 +63,7 @@ const betService = new BetService({
   kafkaMirror,
 });
 
-registerHealthController(app, { redis, kafkaMirror, symbols: SYMBOLS, config });
+registerHealthController(app, { kafkaMirror, symbols: SYMBOLS, config });
 registerUserController(app, { userService, marketService, chatService, leaderboardService });
 registerAdminController(app, { repo, marketService, config });
 
@@ -85,7 +86,14 @@ async function bootstrap() {
   });
 
   await marketService.hydrateTickSizes();
-  await kafkaMirror.connect();
+
+  // Kafka connection is optional - app works without it
+  try {
+    await kafkaMirror.connect();
+    log("kafka", "connected successfully");
+  } catch (err) {
+    console.warn("Kafka unavailable, continuing without it:", err.message);
+  }
 
   if (config.usePyBinance) {
     const pyBridge = new PythonBinanceBridge({
@@ -93,6 +101,10 @@ async function bootstrap() {
       symbols: SYMBOLS,
       onPrice: (tick) => marketService.onPriceTick(tick),
       maxRestarts: config.pyBinanceMaxRestarts,
+      apiKey: config.binanceApiKey,
+      apiSecret: config.binanceApiSecret,
+      tld: config.binanceTld,
+      wsTimeout: config.binanceWsTimeout,
       onFatal: () => {
         log("stream", "python-binance disabled; fallback price generator remains active");
       },
@@ -101,7 +113,7 @@ async function bootstrap() {
   } else {
     const binance = new BinanceStream(SYMBOLS, (tick) => {
       marketService.onPriceTick(tick);
-    });
+    }, config.binanceTld);
     binance.start();
   }
 

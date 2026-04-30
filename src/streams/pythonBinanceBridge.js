@@ -4,12 +4,16 @@ const { spawn } = require("child_process");
 const { log, warn, error } = require("../config/logger");
 
 class PythonBinanceBridge {
-  constructor({ pythonCmd, symbols, onPrice, maxRestarts = 6, onFatal = null }) {
+  constructor({ pythonCmd, symbols, onPrice, maxRestarts = 6, onFatal = null, apiKey = "", apiSecret = "", tld = "com", wsTimeout = 30 }) {
     this.pythonCmd = pythonCmd;
     this.symbols = symbols;
     this.onPrice = onPrice;
     this.maxRestarts = maxRestarts;
     this.onFatal = onFatal;
+    this.apiKey = apiKey;
+    this.apiSecret = apiSecret;
+    this.tld = tld;
+    this.wsTimeout = wsTimeout;
     this.child = null;
     this.restartDelay = 2000;
     this.restartCount = 0;
@@ -25,6 +29,10 @@ class PythonBinanceBridge {
       const env = {
         ...process.env,
         BINANCE_SYMBOLS: this.symbols.map((s) => s.toLowerCase()).join(","),
+        BINANCE_API_KEY: this.apiKey,
+        BINANCE_API_SECRET: this.apiSecret,
+        BINANCE_TLD: this.tld,
+        BINANCE_WS_TIMEOUT: String(this.wsTimeout),
       };
 
       this.child = spawn(this.pythonCmd, [scriptPath], {

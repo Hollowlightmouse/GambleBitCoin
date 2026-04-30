@@ -15,50 +15,63 @@ const $ = (id) => document.getElementById(id);
 
 function initChart() {
   const ctx = $("priceChart");
-  if (!ctx) return;
+  if (!ctx) {
+    console.error("Canvas priceChart not found");
+    return;
+  }
 
-  state.priceChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "Price",
-          data: [],
-          borderColor: "#00ff00",
-          backgroundColor: "rgba(0, 255, 0, 0.1)",
-          borderWidth: 3,
-          fill: true,
-          pointRadius: 0,
-          pointHoverRadius: 0,
-          tension: 0.4,
-          spanGaps: true,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      animation: {
-        duration: 0,
+  if (typeof Chart === "undefined") {
+    console.error("Chart.js not loaded");
+    return;
+  }
+
+  try {
+    state.priceChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Price",
+            data: [],
+            borderColor: "#00ff00",
+            backgroundColor: "rgba(0, 255, 0, 0.1)",
+            borderWidth: 3,
+            fill: true,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            tension: 0.4,
+            spanGaps: true,
+          },
+        ],
       },
-      plugins: {
-        legend: { display: false },
-        filler: { propagate: true },
-      },
-      scales: {
-        y: {
-          beginAtZero: false,
-          grid: { color: "rgba(255, 255, 255, 0.1)" },
-          ticks: { color: "rgba(255, 255, 255, 0.7)" },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        animation: {
+          duration: 0,
         },
-        x: {
-          grid: { display: false },
-          ticks: { color: "rgba(255, 255, 255, 0.7)" },
+        plugins: {
+          legend: { display: false },
+          filler: { propagate: true },
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            grid: { color: "rgba(255, 255, 255, 0.1)" },
+            ticks: { color: "rgba(255, 255, 255, 0.7)" },
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: "rgba(255, 255, 255, 0.7)" },
+          },
         },
       },
-    },
-  });
+    });
+    console.log("Chart initialized successfully");
+  } catch (err) {
+    console.error("Error initializing chart:", err);
+  }
 }
 
 function updateChart(price) {
@@ -271,7 +284,10 @@ socket.on("market_joined", (payload) => {
 
   renderBoard($("boardRoom"), payload.roomBoard || []);
 
-  initChart();
+  // Pequeño retraso para asegurar que el DOM está completamente renderizado
+  setTimeout(() => {
+    initChart();
+  }, 100);
 
   if (state.blocked) {
     lockUIBecauseLost("Has perdido por completo. No puedes seguir apostando.");

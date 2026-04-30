@@ -2,16 +2,17 @@ const WebSocket = require("ws");
 const { warn, error, log } = require("../config/logger");
 
 class BinanceStream {
-  constructor(symbols, onPrice) {
+  constructor(symbols, onPrice, tld = "com") {
     this.symbols = symbols;
     this.onPrice = onPrice;
+    this.tld = tld;
     this.ws = null;
     this.reconnectDelay = 2000;
   }
 
   start() {
     const streamPath = this.symbols.map((symbol) => `${symbol.toLowerCase()}@trade`).join("/");
-    const url = `wss://stream.binance.com:9443/stream?streams=${streamPath}`;
+    const url = `wss://stream.binance.${this.tld}:9443/stream?streams=${streamPath}`;
 
     const connect = () => {
       this.ws = new WebSocket(url);

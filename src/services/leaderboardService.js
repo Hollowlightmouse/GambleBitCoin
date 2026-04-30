@@ -4,8 +4,10 @@ class LeaderboardService {
   }
 
   async getBoards(symbol) {
-    const roomBoard = await this.repo.getLeaderboard(this.repo.leaderboardKey(symbol), 10);
-    const globalBoard = await this.repo.getLeaderboard(this.repo.leaderboardGlobalKey(), 10);
+    const roomKey = 'leaderboard:' + symbol;
+    const globalKey = 'leaderboard:global';
+    const roomBoard = await this.repo.getLeaderboard(roomKey, 10);
+    const globalBoard = await this.repo.getLeaderboard(globalKey, 10);
     return { roomBoard, globalBoard };
   }
 

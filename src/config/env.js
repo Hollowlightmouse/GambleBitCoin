@@ -1,22 +1,16 @@
-const path = require("path");
-
 function toNumber(value, fallback) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : fallback;
+  var num = Number(value);
+  return isFinite(num) ? num : fallback;
 }
 
 function toBoolean(value, fallback) {
   if (value === undefined) return fallback;
-  return ["1", "true", "yes", "on"].includes(String(value).toLowerCase());
+  var str = String(value).toLowerCase();
+  return str === "1" || str === "true" || str === "yes" || str === "on";
 }
 
-const config = {
+var config = {
   port: toNumber(process.env.PORT, 3000),
-  redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
-  kafkaBrokers: (process.env.KAFKA_BROKERS || "localhost:9092")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean),
   roundSeconds: toNumber(process.env.ROUND_SECONDS, 20),
   lockSeconds: toNumber(process.env.LOCK_SECONDS, 5),
   initialBalance: toNumber(process.env.INITIAL_BALANCE, 2000),
@@ -26,11 +20,14 @@ const config = {
   roundHistoryLimit: toNumber(process.env.ROUND_HISTORY_LIMIT, 100),
   enablePriceFallback: toBoolean(process.env.ENABLE_PRICE_FALLBACK, true),
   priceStaleMs: toNumber(process.env.PRICE_STALE_MS, 12000),
-  usePyBinance: toBoolean(process.env.USE_PY_BINANCE, true),
+  usePyBinance: toBoolean(process.env.USE_PY_BINANCE, false),
   pythonCmd: process.env.PYTHON_CMD || "python",
   pyBinanceMaxRestarts: toNumber(process.env.PY_BINANCE_MAX_RESTARTS, 6),
-  autoOpenBrowser: toBoolean(process.env.AUTO_OPEN_BROWSER, true),
-  publicDir: path.join(process.cwd(), "src", "public"),
+  autoOpenBrowser: toBoolean(process.env.AUTO_OPEN_BROWSER, false),
+  binanceTld: (process.env.BINANCE_TLD || "com").trim(),
+  binanceWsTimeout: toNumber(process.env.BINANCE_WS_TIMEOUT, 30),
+  publicDir: require("path").join(process.cwd(), "src", "public"),
+  kafkaBrokers: (process.env.KAFKA_BROKERS || "").split(",").map(function(s) { return s.trim(); }).filter(Boolean),
 };
 
-module.exports = { config };
+module.exports = { config: config };
