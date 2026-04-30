@@ -85,12 +85,16 @@ class MarketService {
     this.io.to(this.room(symbol)).emit("price_tick", { symbol, price, ts });
 
     if (source === "fallback") {
-      await this.kafkaMirror.send(this.config.kafkaPriceTopic, {
-        symbol,
-        price,
-        ts,
-        source,
-      });
+      await this.kafkaMirror.send(
+        this.config.kafkaPriceTopic,
+        {
+          symbol,
+          price,
+          ts,
+          source,
+        },
+        symbol
+      );
     }
   }
 
@@ -117,15 +121,19 @@ class MarketService {
       secondsLeft: this.config.roundSeconds,
     });
 
-    await this.kafkaMirror.send(this.config.kafkaRoundTopic, {
-      type: "round_started",
-      ts: now,
-      symbol,
-      roundId: round.id,
-      startPrice: round.startPrice,
-      endAt: round.endAt,
-      lockAt: round.lockAt,
-    });
+    await this.kafkaMirror.send(
+      this.config.kafkaRoundTopic,
+      {
+        type: "round_started",
+        ts: now,
+        symbol,
+        roundId: round.id,
+        startPrice: round.startPrice,
+        endAt: round.endAt,
+        lockAt: round.lockAt,
+      },
+      round.id
+    );
   }
 
   async settleRound(symbol) {
@@ -210,19 +218,23 @@ class MarketService {
       globalBoard: boards.globalBoard,
     });
 
-    await this.kafkaMirror.send(this.config.kafkaRoundTopic, {
-      type: "round_ended",
-      ts: Date.now(),
-      symbol,
-      roundId: round.id,
-      startPrice: round.startPrice,
-      endPrice: round.endPrice,
-      result: round.result,
-      bets: bets.length,
-      winners: winners.length,
-    });
+    await this.kafkaMirror.send(
+      this.config.kafkaRoundTopic,
+      {
+        type: "round_ended",
+        ts: Date.now(),
+        symbol,
+        roundId: round.id,
+        startPrice: round.startPrice,
+        endPrice: round.endPrice,
+        result: round.result,
+        bets: bets.length,
+        winners: winners.length,
+      },
+      round.id
+    );
 
-    setTimeout(() => this.openRound(symbol), 800);
+    setTimeout(() => this.openRound(symbol), 5000);
   }
 
   startRoundLoop() {
@@ -249,12 +261,16 @@ class MarketService {
             roundId: round.id,
             secondsLeft,
           });
-          await this.kafkaMirror.send(this.config.kafkaRoundTopic, {
-            type: "round_locked",
-            ts: now,
-            symbol,
-            roundId: round.id,
-          });
+          await this.kafkaMirror.send(
+            this.config.kafkaRoundTopic,
+            {
+              type: "round_locked",
+              ts: now,
+              symbol,
+              roundId: round.id,
+            },
+            round.id
+          );
         }
 
         this.io.to(this.room(symbol)).emit("round_timer", {

@@ -66,17 +66,21 @@ class BetService {
     await this.repo.setUserBalanceAndStatus(user.id, user.balance, user.blocked);
     await this.leaderboardService.updateForUser(symbol, user);
 
-    await this.kafkaMirror.send(this.config.kafkaBetTopic, {
-      type: "bet_placed",
-      ts: Date.now(),
-      symbol,
-      roundId: round.id,
-      userId: user.id,
-      userName: user.name,
-      side,
-      amount: numericAmount,
-      balanceAfter: user.balance,
-    });
+    await this.kafkaMirror.send(
+      this.config.kafkaBetTopic,
+      {
+        type: "bet_placed",
+        ts: Date.now(),
+        symbol,
+        roundId: round.id,
+        userId: user.id,
+        userName: user.name,
+        side,
+        amount: numericAmount,
+        balanceAfter: user.balance,
+      },
+      round.id
+    );
 
     return {
       bet,

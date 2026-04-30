@@ -10,6 +10,8 @@ from pyspark.sql.functions import (
     min as spark_min,
     max as spark_max,
     avg as spark_avg,
+    first as spark_first,
+    last as spark_last,
     sum as spark_sum,
     count as spark_count,
     expr,
@@ -30,6 +32,7 @@ OUTPUT_DIR = os.getenv("SPARK_OUTPUT_DIR", "data")
 PRICES_CSV = os.path.join(OUTPUT_DIR, "metrics_prices")
 BETS_CSV = os.path.join(OUTPUT_DIR, "metrics_bets")
 ALERTS_CSV = os.path.join(OUTPUT_DIR, "alerts")
+ANOMALY_REPORT_CSV = os.path.join(OUTPUT_DIR, "anomaly_report")
 
 
 def ensure_output_dir():
@@ -143,6 +146,7 @@ def main():
         .agg(
             spark_min("price").alias("min_price"),
             spark_max("price").alias("max_price"),
+            spark_avg("price").alias("avg_price"),
         )
         .withColumn(
             "spike_up",
@@ -159,11 +163,46 @@ def main():
             col("symbol"),
             col("min_price"),
             col("max_price"),
+            col("avg_price"),
             col("spike_up"),
             col("spike_down"),
         )
         .withColumn("alert_type", expr("CASE WHEN spike_up THEN 'SPIKE_UP' ELSE 'SPIKE_DOWN' END"))
+        .withColumn("trend", expr("CASE WHEN spike_up THEN 'UP' ELSE 'DOWN' END"))
         .withColumn("threshold", expr(f"CASE WHEN spike_up THEN {SPIKE_UP_PCT} ELSE {SPIKE_DOWN_PCT} END"))
+        .withColumn("created_at", expr("current_timestamp()"))
+    )
+
+    anomaly_report = (
+        prices.withWatermark("event_time", "2 minutes")
+        .groupBy(window(col("event_time"), "1 minute"), col("symbol"))
+        .agg(
+            spark_min("price").alias("min_price"),
+            spark_max("price").alias("max_price"),
+            spark_avg("price").alias("avg_price"),
+            spark_first("price", ignorenulls=True).alias("first_price"),
+            spark_last("price", ignorenulls=True).alias("last_price"),
+        )
+        .withColumn(
+            "trend",
+            expr(
+                "CASE WHEN last_price > first_price THEN 'UP' "
+                "WHEN last_price < first_price THEN 'DOWN' "
+                "ELSE 'HOLD' END"
+            ),
+        )
+        .select(
+            col("window.start").alias("window_start"),
+            col("window.end").alias("window_end"),
+            col("symbol"),
+            col("min_price"),
+            col("max_price"),
+            col("avg_price"),
+            col("first_price"),
+            col("last_price"),
+            col("trend"),
+        )
+        .withColumn("alert_type", expr("'ANOMALY_REPORT'"))
         .withColumn("created_at", expr("current_timestamp()"))
     )
 
@@ -240,14 +279,37 @@ def main():
             "window_end",
             "symbol",
             "alert_type",
+            "trend",
             "min_price",
             "max_price",
+            "avg_price",
             "threshold",
         )
         .coalesce(1)
         .write.mode("append")
         .option("header", True)
         .csv(ALERTS_CSV))
+
+    def write_anomaly_report_csv(df, batch_id):
+        if df.rdd.isEmpty():
+            return
+        (df.select(
+            "created_at",
+            "window_start",
+            "window_end",
+            "symbol",
+            "alert_type",
+            "trend",
+            "avg_price",
+            "min_price",
+            "max_price",
+            "first_price",
+            "last_price",
+        )
+        .coalesce(1)
+        .write.mode("append")
+        .option("header", True)
+        .csv(ANOMALY_REPORT_CSV))
 
     price_windows.writeStream.outputMode("append").foreachBatch(write_prices_csv).option(
         "checkpointLocation", os.path.join(OUTPUT_DIR, "chk_prices_csv")
@@ -264,15 +326,24 @@ def main():
         .start()
     )
 
+    anomaly_report_writer = (
+        anomaly_report.writeStream.outputMode("append")
+        .foreachBatch(write_anomaly_report_csv)
+        .option("checkpointLocation", os.path.join(OUTPUT_DIR, "chk_anomaly_report_csv"))
+        .start()
+    )
+
     alerts_to_kafka = (
         spike_windows.selectExpr(
             "to_json(named_struct("
             "'symbol', symbol, "
             "'alert_type', alert_type, "
+            "'trend', trend, "
             "'window_start', CAST(window_start AS STRING), "
             "'window_end', CAST(window_end AS STRING), "
             "'min_price', min_price, "
             "'max_price', max_price, "
+            "'avg_price', avg_price, "
             "'threshold', threshold, "
             "'created_at', CAST(created_at AS STRING)"
             ")) AS value"
@@ -281,6 +352,30 @@ def main():
         .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP)
         .option("topic", ALERTS_TOPIC)
         .option("checkpointLocation", os.path.join(OUTPUT_DIR, "chk_alerts_kafka"))
+        .outputMode("append")
+        .start()
+    )
+
+    anomaly_report_to_kafka = (
+        anomaly_report.selectExpr(
+            "to_json(named_struct("
+            "'symbol', symbol, "
+            "'alert_type', alert_type, "
+            "'trend', trend, "
+            "'window_start', CAST(window_start AS STRING), "
+            "'window_end', CAST(window_end AS STRING), "
+            "'min_price', min_price, "
+            "'max_price', max_price, "
+            "'avg_price', avg_price, "
+            "'first_price', first_price, "
+            "'last_price', last_price, "
+            "'created_at', CAST(created_at AS STRING)"
+            ")) AS value"
+        )
+        .writeStream.format("kafka")
+        .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP)
+        .option("topic", ALERTS_TOPIC)
+        .option("checkpointLocation", os.path.join(OUTPUT_DIR, "chk_anomaly_report_kafka"))
         .outputMode("append")
         .start()
     )

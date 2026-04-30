@@ -194,6 +194,12 @@ KAFKA_ENABLED=true            # Auditoría de eventos
 npm start
 ```
 
+Si quieres levantar contenedores (Redis + app en Docker):
+
+```bash
+npm run start:docker
+```
+
 El navegador se abrirá automáticamente en `http://localhost:3000`
 
 ## 🏗️ Arquitectura del Sistema

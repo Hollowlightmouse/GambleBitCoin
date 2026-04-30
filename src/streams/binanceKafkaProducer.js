@@ -18,7 +18,7 @@ class BinanceKafkaProducer {
   }
 
   start() {
-    const scriptPath = path.join(process.cwd(), "src", "streams", "binance_py_stream.py");
+    const scriptPath = path.join(process.cwd(), "src", "streams", "binance_kafka_producer.py");
 
     const startProcess = () => {
       if (this.stopped) return;
@@ -38,27 +38,12 @@ class BinanceKafkaProducer {
 
       const rl = readline.createInterface({ input: this.child.stdout });
       rl.on("line", (line) => {
-        try {
-          const payload = JSON.parse(line);
-          if (payload && payload.type === "stream_error") {
-            warn("py-binance", payload.message || "stream_error");
-            return;
-          }
-          if (!payload?.symbol || payload.price === undefined) return;
-          if (this.restartCount > 0) {
-            this.restartCount = 0;
-            this.restartDelay = 2000;
-          }
-
-          this.kafkaMirror.send(this.topic, {
-            symbol: String(payload.symbol).toUpperCase(),
-            price: Number(payload.price),
-            ts: Number(payload.ts || Date.now()),
-            source: "binance_trade",
-          });
-        } catch (_err) {
-          // ignore non-json lines
+        if (!line) return;
+        if (this.restartCount > 0) {
+          this.restartCount = 0;
+          this.restartDelay = 2000;
         }
+        log("py-binance", line.trim());
       });
 
       this.child.stderr.on("data", (chunk) => {

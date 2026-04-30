@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "node app.js"
+    "dev": "node app.js",
+    "start:docker": "docker compose up -d mi-redis gamblebitcoin"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

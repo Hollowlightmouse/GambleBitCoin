@@ -29,12 +29,17 @@ class KafkaMirror {
     }
   }
 
-  async send(topic, payload) {
+  async send(topic, payload, key = null) {
     if (!this.ready || !this.producer) return;
     try {
       await this.producer.send({
         topic,
-        messages: [{ value: JSON.stringify(payload) }],
+        messages: [
+          {
+            value: JSON.stringify(payload),
+            key: key ? String(key) : undefined,
+          },
+        ],
       });
     } catch (err) {
       error("kafka", `send failed on ${topic}: ${err.message}`);

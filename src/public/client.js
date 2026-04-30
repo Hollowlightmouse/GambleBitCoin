@@ -9,6 +9,7 @@ const state = {
   chartData: [],
   lastChartUpdate: 0,
   lastPrice: null,
+  chartInterval: null,
   alertItems: [],
 };
 
@@ -60,55 +61,51 @@ function initChart() {
       },
     },
   });
+
+  if (state.chartInterval) {
+    clearInterval(state.chartInterval);
+  }
+
+  state.chartInterval = setInterval(() => {
+    if (!state.priceChart || state.lastPrice === null) return;
+
+    const timeLabel = new Date().toLocaleTimeString();
+    const price = Number(state.lastPrice);
+
+    state.chartData.push(price);
+
+    // Mantener ultimos 200 puntos (200 * 3s = 10 minutos)
+    if (state.chartData.length > 200) {
+      state.chartData.shift();
+    }
+
+    state.priceChart.data.labels.push(timeLabel);
+    if (state.priceChart.data.labels.length > 200) {
+      state.priceChart.data.labels.shift();
+    }
+
+    state.priceChart.data.datasets[0].data = [...state.chartData];
+
+    const current = state.chartData[state.chartData.length - 1];
+    const previous = state.chartData[state.chartData.length - 2] || current;
+
+    if (current > previous) {
+      state.priceChart.data.datasets[0].borderColor = "#00ff00";
+      state.priceChart.data.datasets[0].backgroundColor = "rgba(0, 255, 0, 0.1)";
+    } else if (current < previous) {
+      state.priceChart.data.datasets[0].borderColor = "#ff0000";
+      state.priceChart.data.datasets[0].backgroundColor = "rgba(255, 0, 0, 0.1)";
+    } else {
+      state.priceChart.data.datasets[0].borderColor = "#ffff00";
+      state.priceChart.data.datasets[0].backgroundColor = "rgba(255, 255, 0, 0.1)";
+    }
+
+    state.priceChart.update("none");
+  }, 3000);
 }
 
 function updateChart(price) {
-  if (!state.priceChart) return;
-
-  const now = Date.now();
-  
-  // Solo agregar punto cada 5 segundos (5000ms)
-  if (now - state.lastChartUpdate < 5000) {
-    state.lastPrice = price; // Actualiza el precio pero no renderiza
-    return;
-  }
-
-  // 5 segundos pasaron, agregar punto
-  state.lastChartUpdate = now;
   state.lastPrice = price;
-
-  const timeLabel = new Date().toLocaleTimeString();
-
-  state.chartData.push(price);
-  
-  // Mantener últimos 120 puntos (120 * 5s = 10 minutos)
-  if (state.chartData.length > 120) {
-    state.chartData.shift();
-  }
-
-  state.priceChart.data.labels.push(timeLabel);
-  if (state.priceChart.data.labels.length > 120) {
-    state.priceChart.data.labels.shift();
-  }
-
-  state.priceChart.data.datasets[0].data = [...state.chartData];
-
-  // Color dinámico: verde si sube, rojo si baja
-  const current = state.chartData[state.chartData.length - 1];
-  const previous = state.chartData[state.chartData.length - 2] || current;
-
-  if (current > previous) {
-    state.priceChart.data.datasets[0].borderColor = "#00ff00";
-    state.priceChart.data.datasets[0].backgroundColor = "rgba(0, 255, 0, 0.1)";
-  } else if (current < previous) {
-    state.priceChart.data.datasets[0].borderColor = "#ff0000";
-    state.priceChart.data.datasets[0].backgroundColor = "rgba(255, 0, 0, 0.1)";
-  } else {
-    state.priceChart.data.datasets[0].borderColor = "#ffff00";
-    state.priceChart.data.datasets[0].backgroundColor = "rgba(255, 255, 0, 0.1)";
-  }
-
-  state.priceChart.update("none");
 }
 
 function setLoginMsg(msg) {
@@ -142,10 +139,12 @@ function addAlertItem(alert) {
   const symbol = alert.symbol || "--";
   const minPrice = alert.min_price !== undefined ? Number(alert.min_price).toFixed(6) : "--";
   const maxPrice = alert.max_price !== undefined ? Number(alert.max_price).toFixed(6) : "--";
+  const avgPrice = alert.avg_price !== undefined ? Number(alert.avg_price).toFixed(6) : "--";
+  const trend = alert.trend || "--";
 
   const row = document.createElement("div");
   row.className = "alert-item";
-  row.innerHTML = `<strong>${label}</strong> ${symbol} | min ${minPrice} / max ${maxPrice} <span class="muted">${createdAt}</span>`;
+  row.innerHTML = `<strong>${label}</strong> ${symbol} | trend ${trend} | avg ${avgPrice} | min ${minPrice} / max ${maxPrice} <span class="muted">${createdAt}</span>`;
   box.prepend(row);
 
   state.alertItems.push(row);

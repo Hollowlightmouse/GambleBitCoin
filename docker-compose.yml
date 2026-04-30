@@ -1,6 +1,12 @@
 version: "3.8"
 
 services:
+  mi-redis:
+    image: redis:7.2-alpine
+    container_name: mi-redis
+    ports:
+      - "6379:6379"
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper-1
@@ -23,6 +29,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_NUM_PARTITIONS: 3
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -32,3 +39,41 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  gamblebitcoin:
+    build: .
+    container_name: gamblebitcoin
+    depends_on:
+      - mi-redis
+      - kafka
+    environment:
+      PORT: 3000
+      REDIS_URL: redis://mi-redis:6379
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_PRICE_TOPIC: market.prices.raw
+      KAFKA_BET_TOPIC: market.bets.events
+      KAFKA_ROUND_TOPIC: market.round.events
+      KAFKA_ALERTS_TOPIC: market.alerts
+      ROUND_SECONDS: 20
+      LOCK_SECONDS: 5
+      INITIAL_BALANCE: 2000
+      BET_MIN: 10
+      BET_MAX: 300
+      CHAT_LIMIT: 200
+      ALERT_LIMIT: 50
+      ROUND_HISTORY_LIMIT: 100
+      ENABLE_PRICE_FALLBACK: true
+      PRICE_STALE_MS: 12000
+      USE_PY_BINANCE: true
+      PYTHON_CMD: python3
+      PY_BINANCE_MAX_RESTARTS: 6
+      BINANCE_TLD: com
+      BINANCE_WS_TIMEOUT: 30
+      PRICE_SPIKE_UP_PCT: 2.0
+      PRICE_SPIKE_DOWN_PCT: 2.0
+      PRICE_SPIKE_WINDOW_SEC: 30
+      AUTO_OPEN_BROWSER: false
+      BINANCE_API_KEY: ${BINANCE_API_KEY}
+      BINANCE_API_SECRET: ${BINANCE_API_SECRET}
+    ports:
+      - "3000:3000"
