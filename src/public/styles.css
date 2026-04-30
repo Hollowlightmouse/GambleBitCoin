@@ -226,6 +226,29 @@ button {
   min-height: 18px;
 }
 
+.alert-box {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: clamp(6px, 1vw, 8px);
+  min-height: 80px;
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: clamp(11px, 1.5vw, 13px);
+}
+
+.alert-item {
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.alert-item strong {
+  color: #f87171;
+}
+
 #priceChart {
   max-height: clamp(120px, 25vh, 180px);
   margin: clamp(6px, 1vw, 8px) 0;
@@ -281,6 +304,11 @@ button {
 
   .chat-box {
     min-height: 100px;
+  }
+
+  .alert-box {
+    min-height: 70px;
+    max-height: 140px;
   }
 
   #priceChart {
@@ -344,6 +372,12 @@ button {
     font-size: clamp(10px, 2vw, 12px);
   }
 
+  .alert-box {
+    min-height: 60px;
+    max-height: 120px;
+    font-size: clamp(10px, 2vw, 12px);
+  }
+
   #priceChart {
     max-height: clamp(80px, 35vh, 120px);
   }
@@ -387,6 +421,11 @@ button {
 
   .board {
     max-height: 80px;
+  }
+
+  .alert-box {
+    min-height: 50px;
+    max-height: 100px;
   }
 
   #priceChart {

@@ -9,6 +9,7 @@ const state = {
   chartData: [],
   lastChartUpdate: 0,
   lastPrice: null,
+  alertItems: [],
 };
 
 const $ = (id) => document.getElementById(id);
@@ -129,6 +130,28 @@ function addChatLine(text) {
     requestAnimationFrame(() => {
       box.scrollTop = box.scrollHeight;
     });
+  }
+}
+
+function addAlertItem(alert) {
+  const box = $("alertBox");
+  if (!box) return;
+
+  const createdAt = alert.created_at || alert.createdAt || new Date().toISOString();
+  const label = alert.alert_type || alert.type || "ALERT";
+  const symbol = alert.symbol || "--";
+  const minPrice = alert.min_price !== undefined ? Number(alert.min_price).toFixed(6) : "--";
+  const maxPrice = alert.max_price !== undefined ? Number(alert.max_price).toFixed(6) : "--";
+
+  const row = document.createElement("div");
+  row.className = "alert-item";
+  row.innerHTML = `<strong>${label}</strong> ${symbol} | min ${minPrice} / max ${maxPrice} <span class="muted">${createdAt}</span>`;
+  box.prepend(row);
+
+  state.alertItems.push(row);
+  if (state.alertItems.length > 50) {
+    const last = state.alertItems.shift();
+    if (last && last.remove) last.remove();
   }
 }
 
@@ -273,6 +296,9 @@ socket.on("market_joined", (payload) => {
 
   initChart();
 
+  const alertBox = $("alertBox");
+  if (alertBox) alertBox.innerHTML = "";
+
   if (state.blocked) {
     lockUIBecauseLost("Has perdido por completo. No puedes seguir apostando.");
   }
@@ -342,6 +368,10 @@ socket.on("leaderboard_updated", ({ symbol, roomBoard }) => {
 socket.on("chat_message", (message) => {
   if (message.symbol !== state.symbol) return;
   addChatLine(`<b>${message.userName}</b>: ${message.text}`);
+});
+
+socket.on("anomaly_alert", (payload) => {
+  addAlertItem(payload);
 });
 
 socket.on("user_action", ({ symbol, message }) => {

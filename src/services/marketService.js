@@ -77,19 +77,21 @@ class MarketService {
     }
   }
 
-  async onPriceTick({ symbol, price, ts, source = "binance_trade" }) {
+  async onPriceTick({ symbol, price, ts, source = "kafka" }) {
     if (!this.state[symbol] || !price || Number.isNaN(price)) return;
     this.state[symbol].latestPrice = Number(price);
     this.state[symbol].latestPriceTs = Date.now();
 
     this.io.to(this.room(symbol)).emit("price_tick", { symbol, price, ts });
 
-    await this.kafkaMirror.send("market.prices.raw", {
-      symbol,
-      price,
-      ts,
-      source,
-    });
+    if (source === "fallback") {
+      await this.kafkaMirror.send(this.config.kafkaPriceTopic, {
+        symbol,
+        price,
+        ts,
+        source,
+      });
+    }
   }
 
   async openRound(symbol) {
@@ -115,7 +117,7 @@ class MarketService {
       secondsLeft: this.config.roundSeconds,
     });
 
-    await this.kafkaMirror.send("market.round.events", {
+    await this.kafkaMirror.send(this.config.kafkaRoundTopic, {
       type: "round_started",
       ts: now,
       symbol,
@@ -208,7 +210,7 @@ class MarketService {
       globalBoard: boards.globalBoard,
     });
 
-    await this.kafkaMirror.send("market.round.events", {
+    await this.kafkaMirror.send(this.config.kafkaRoundTopic, {
       type: "round_ended",
       ts: Date.now(),
       symbol,
@@ -247,7 +249,7 @@ class MarketService {
             roundId: round.id,
             secondsLeft,
           });
-          await this.kafkaMirror.send("market.round.events", {
+          await this.kafkaMirror.send(this.config.kafkaRoundTopic, {
             type: "round_locked",
             ts: now,
             symbol,

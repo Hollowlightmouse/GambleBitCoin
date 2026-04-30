@@ -12,8 +12,8 @@ const { SYMBOLS, SIDES } = require("./src/config/constants");
 const { log } = require("./src/config/logger");
 const { RedisRepository } = require("./src/repositories/RedisRepository");
 const { KafkaMirror } = require("./src/streams/kafkaMirror");
-const { BinanceStream } = require("./src/streams/binanceStream");
-const { PythonBinanceBridge } = require("./src/streams/pythonBinanceBridge");
+const { BinanceKafkaProducer } = require("./src/streams/binanceKafkaProducer");
+const { KafkaStreamConsumer } = require("./src/streams/kafkaStreamConsumer");
 const { UserService } = require("./src/services/userService");
 const { LeaderboardService } = require("./src/services/leaderboardService");
 const { ChatService } = require("./src/services/chatService");
@@ -88,22 +88,42 @@ async function bootstrap() {
   await kafkaMirror.connect();
 
   if (config.usePyBinance) {
-    const pyBridge = new PythonBinanceBridge({
+    const binanceProducer = new BinanceKafkaProducer({
       pythonCmd: config.pythonCmd,
       symbols: SYMBOLS,
-      onPrice: (tick) => marketService.onPriceTick(tick),
+      kafkaMirror,
+      topic: config.kafkaPriceTopic,
       maxRestarts: config.pyBinanceMaxRestarts,
       onFatal: () => {
         log("stream", "python-binance disabled; fallback price generator remains active");
       },
     });
-    pyBridge.start();
+    binanceProducer.start();
   } else {
-    const binance = new BinanceStream(SYMBOLS, (tick) => {
-      marketService.onPriceTick(tick);
-    });
-    binance.start();
+    log("stream", "python-binance disabled; price producer not started");
   }
+
+  const streamConsumer = new KafkaStreamConsumer({
+    kafkaMirror,
+    topics: [config.kafkaPriceTopic, config.kafkaAlertsTopic],
+    groupId: "market-consumer",
+    onMessage: (topic, payload) => {
+      if (topic === config.kafkaPriceTopic) {
+        marketService.onPriceTick({
+          symbol: String(payload.symbol).toUpperCase(),
+          price: Number(payload.price),
+          ts: Number(payload.ts || Date.now()),
+          source: payload.source || "kafka",
+        });
+        return;
+      }
+
+      if (topic === config.kafkaAlertsTopic) {
+        io.emit("anomaly_alert", payload);
+      }
+    },
+  });
+  await streamConsumer.start();
 
   marketService.startRoundLoop();
   marketService.startFallbackPriceGenerator();
@@ -122,6 +142,11 @@ async function bootstrap() {
         console.error("browser open error:", err.message);
       });
     }
+  });
+
+  process.on("SIGINT", async () => {
+    await streamConsumer.stop();
+    process.exit(0);
   });
 }
 

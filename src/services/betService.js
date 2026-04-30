@@ -66,7 +66,7 @@ class BetService {
     await this.repo.setUserBalanceAndStatus(user.id, user.balance, user.blocked);
     await this.leaderboardService.updateForUser(symbol, user);
 
-    await this.kafkaMirror.send("market.bets.events", {
+    await this.kafkaMirror.send(this.config.kafkaBetTopic, {
       type: "bet_placed",
       ts: Date.now(),
       symbol,

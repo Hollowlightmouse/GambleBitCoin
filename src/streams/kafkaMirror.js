@@ -6,14 +6,15 @@ class KafkaMirror {
     this.ready = false;
     this.enabled = Array.isArray(brokers) && brokers.length > 0;
     this.producer = null;
+    this.kafka = null;
 
     if (!this.enabled) return;
 
-    const kafka = new Kafka({
+    this.kafka = new Kafka({
       clientId: "market-mirror",
       brokers,
     });
-    this.producer = kafka.producer();
+    this.producer = this.kafka.producer();
   }
 
   async connect() {
@@ -38,6 +39,11 @@ class KafkaMirror {
     } catch (err) {
       error("kafka", `send failed on ${topic}: ${err.message}`);
     }
+  }
+
+  createConsumer(groupId) {
+    if (!this.kafka || !this.enabled) return null;
+    return this.kafka.consumer({ groupId });
   }
 }
 
