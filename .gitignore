@@ -7,6 +7,9 @@ yarn.lock
 .env
 .env.local
 .env.*.local
+README.md
+ESTRUCTURA.md
+
 
 # Logs
 logs/
@@ -43,5 +46,3 @@ data/
 # OS
 .DS_Store
 Thumbs.db
-README.md
-ESTRUCTURE.md
